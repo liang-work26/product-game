@@ -1,0 +1,1268 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>TEKTRO Product Merge Game</title>
+
+<style>
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  width: 100%;
+  min-height: 100%;
+  background: #050505;
+  color: #fff;
+  font-family: Arial, "Microsoft JhengHei", sans-serif;
+}
+
+body {
+  min-height: 100svh;
+  display: flex;
+  justify-content: center;
+  overflow-x: hidden;
+  padding: 10px;
+}
+
+.game {
+  width: 100%;
+  max-width: 430px;
+  min-height: calc(100svh - 20px);
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+/* ===== 頂部 LOGO ===== */
+header {
+  flex: 0 0 auto;
+  text-align: center;
+  padding: 2px 4px 0;
+}
+
+.logo-area {
+  width: 100%;
+  height: 76px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.logo-area img {
+  display: block;
+  max-width: 100%;
+  max-height: 72px;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+}
+
+/*
+LOGO 替換方式：
+將你的 LOGO 圖片放入 images 資料夾，
+並將下方 HTML 的 src 改成圖片檔名。
+例如：images/tektro-logo.png
+*/
+
+.subtitle {
+  margin-top: 2px;
+  font-size: 23px;
+  line-height: 1.2;
+  font-weight: 900;
+  letter-spacing: 2px;
+}
+
+/* ===== 分數區 ===== */
+.scoreboard {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 11px;
+  flex: 0 0 auto;
+}
+
+.score-box {
+  min-height: 59px;
+  border-radius: 17px;
+  background: #f8df45;
+  color: #776b17;
+  padding: 9px 14px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  overflow: hidden;
+}
+
+.score-box small {
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: .5px;
+  line-height: 1.15;
+}
+
+.score-box strong {
+  display: block;
+  color: #151515;
+  font-size: 25px;
+  line-height: 1.1;
+  margin-top: 3px;
+}
+
+/* 遊戲區：維持 Canvas 原始 420:620 比例 */
+.game-area {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 420 / 620;
+  height: auto;
+  min-height: 0;
+  flex: 0 0 auto;
+  border-radius: 20px;
+  background: #fff;
+  overflow: hidden;
+  touch-action: none;
+}
+
+/* 畫布填滿遊戲區，不扭曲比例 */
+canvas {
+  display: block;
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  aspect-ratio: 420 / 620;
+  touch-action: none;
+  cursor: crosshair;
+}
+
+/* ===== 遊戲結束 ===== */
+.game-over {
+  display: none;
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  background: rgba(0,0,0,.80);
+  color: white;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  text-align: center;
+  padding: 20px;
+}
+
+.game-over.show {
+  display: flex;
+}
+
+.game-over h2 {
+  font-size: 31px;
+  margin: 0 0 8px;
+  color: #f8df45;
+}
+
+.game-over p {
+  margin: 4px 0 18px;
+  font-size: 14px;
+}
+
+button {
+  border: 0;
+  border-radius: 30px;
+  background: #f8df45;
+  color: #111;
+  padding: 12px 25px;
+  font-size: 14px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+/* ===== 合成順序區 ===== */
+.progress-panel {
+  flex: 0 0 auto;
+  background: #fff;
+  color: #111;
+  border-radius: 20px;
+  padding: 10px 9px 8px;
+}
+
+.progress-title {
+  font-size: 16px;
+  font-weight: 900;
+  text-align: left;
+  padding: 0 5px 5px;
+}
+
+.progress-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 5px 2px;
+}
+
+.progress-item {
+  min-width: 0;
+  min-height: 56px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  position: relative;
+  padding: 1px 2px 0;
+}
+
+.progress-item img {
+  display: block;
+  width: 100%;
+  height: 36px;
+  object-fit: contain;
+}
+
+.progress-item span {
+  font-size: 9px;
+  line-height: 1.15;
+  font-weight: 800;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.progress-item:not(:nth-child(4n))::after {
+  content: "›";
+  position: absolute;
+  right: -3px;
+  top: 12px;
+  z-index: 1;
+  color: #d6b300;
+  font-size: 23px;
+  line-height: 1;
+  font-weight: 900;
+}
+
+.progress-item:nth-child(4n)::after,
+.progress-item:last-child::after {
+  content: "";
+}
+
+footer {
+  flex: 0 0 auto;
+  text-align: center;
+  color: #aaa;
+  font-size: 8px;
+  letter-spacing: 1.4px;
+  padding-bottom: 1px;
+}
+
+/* ===== 手機小螢幕調整 ===== */
+@media (max-height: 720px) {
+  body {
+    padding-top: 6px;
+    padding-bottom: 6px;
+  }
+
+  .game {
+    min-height: calc(100svh - 12px);
+    gap: 6px;
+  }
+
+  .logo-area {
+    height: 54px;
+  }
+
+  .logo-area img {
+    max-height: 52px;
+  }
+
+  .subtitle {
+    font-size: 19px;
+    margin-top: 0;
+  }
+
+  .score-box {
+    min-height: 49px;
+    padding: 6px 11px;
+  }
+
+  .score-box small {
+    font-size: 12px;
+  }
+
+  .score-box strong {
+    font-size: 21px;
+  }
+
+  .progress-panel {
+    padding-top: 6px;
+  }
+
+  .progress-title {
+    font-size: 14px;
+    padding-bottom: 2px;
+  }
+
+  .progress-item {
+    min-height: 43px;
+  }
+
+  .progress-item img {
+    height: 27px;
+  }
+
+  .progress-item span {
+    font-size: 8px;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<div class="game">
+
+  <!-- ===== 頂部 LOGO ===== -->
+  <header>
+    <div class="logo-area">
+      <img
+        id="brandLogo"
+        src="images/tektro-logo.png"
+        alt="TEKTRO TRP Logo"
+      >
+    </div>
+    <div class="subtitle">產品合成挑戰</div>
+  </header>
+
+  <!-- ===== 分數 ===== -->
+  <div class="scoreboard">
+    <div class="score-box">
+      <small>SCORE / 目前分數</small>
+      <strong id="score">0</strong>
+    </div>
+
+    <div class="score-box">
+      <small>BEST / 最高紀錄</small>
+      <strong id="best">0</strong>
+    </div>
+  </div>
+
+  <!-- ===== 遊戲畫面 ===== -->
+  <div class="game-area" id="gameArea">
+    <canvas id="gameCanvas" width="420" height="760"></canvas>
+
+    <!-- 遊戲結束時才顯示重新開始按鈕 -->
+    <div class="game-over" id="gameOver">
+      <h2>GAME OVER</h2>
+      <p>挑戰結束！再試一次吧。</p>
+      <button onclick="restartGame()">重新開始</button>
+    </div>
+  </div>
+
+  <!-- ===== 產品合成順序 ===== -->
+  <div class="progress-panel">
+    <div class="progress-title">合成順序</div>
+
+    <div class="progress-grid">
+
+      <div class="progress-item">
+        <img src="images/product0.png" alt="AURIGA+">
+        <span>AURIGA+</span>
+      </div>
+
+      <div class="progress-item">
+        <img src="images/product1.png" alt="Gemini">
+        <span>Gemini</span>
+      </div>
+
+      <div class="progress-item">
+        <img src="images/product2.png" alt="Volans">
+        <span>Volans</span>
+      </div>
+
+      <div class="progress-item">
+        <img src="images/product3.png" alt="ORION">
+        <span>ORION</span>
+      </div>
+
+      <div class="progress-item">
+        <img src="images/product4.png" alt="EVO EXPERT">
+        <span>EVO EXPERT</span>
+      </div>
+
+      <div class="progress-item">
+        <img src="images/product5.png" alt="EVO COMP">
+        <span>EVO COMP</span>
+      </div>
+
+      <div class="progress-item">
+        <img src="images/product6.png" alt="EVO X">
+        <span>EVO X</span>
+      </div>
+
+      <div class="progress-item">
+        <img src="images/product7.png" alt="EVO PRO">
+        <span>EVO PRO</span>
+      </div>
+
+      <div class="progress-item">
+        <img src="images/product8.png" alt="EVO PRO Limited">
+        <span>EVO PRO Limited</span>
+      </div>
+
+    </div>
+  </div>
+
+  <footer>
+    TEKTRO TECHNOLOGY CORPORATION
+  </footer>
+
+</div>
+
+
+<script>
+
+/* ==========================================
+   遊戲基本設定
+========================================== */
+
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
+
+const W = 420;
+const H = 760;
+
+const DROP_LINE = 105;
+const GAME_OVER_LINE = 145;
+
+const GRAVITY = 0.23;
+const FRICTION = 0.985;
+const BOUNCE = 0.12;
+
+
+/* ==========================================
+   產品等級設定
+   r 為碰撞半徑，不是圖片尺寸
+========================================== */
+
+const products = [
+
+  {
+    name: "AURIGA+",
+    short: "AURIGA+",
+    r: 24,
+    color: "#aab5c0",
+    points: 2,
+    symbol: "H"
+  },
+
+  {
+    name: "Gemini",
+    short: "Gemini",
+    r: 31,
+    color: "#9baab9",
+    points: 4,
+    symbol: "B"
+  },
+
+  {
+    name: "Volans",
+    short: "Volans",
+    r: 39,
+    color: "#7daecb",
+    points: 8,
+    symbol: "H"
+  },
+
+  {
+    name: "ORION",
+    short: "ORION",
+    r: 47,
+    color: "#6599bc",
+    points: 16,
+    symbol: "B"
+  },
+
+  {
+    name: "EVO EXPERT",
+    short: "EVO EXPERT",
+    r: 55,
+    color: "#4f78b1",
+    points: 32,
+    symbol: "H"
+  },
+
+  {
+    name: "EVO COMP",
+    short: "EVO COMP",
+    r: 63,
+    color: "#41669f",
+    points: 64,
+    symbol: "B"
+  },
+
+  {
+    name: "EVO X",
+    short: "EVO X",
+    r: 72,
+    color: "#f1c52d",
+    points: 128,
+    symbol: "H"
+  },
+
+  {
+    name: "EVO PRO",
+    short: "EVO PRO",
+    r: 81,
+    color: "#e8b61b",
+    points: 256,
+    symbol: "B"
+  },
+
+  {
+    name: "EVO PRO Limited",
+    short: "EVO PRO Limited",
+    r: 91,
+    color: "#d89b13",
+    points: 512,
+    symbol: "T"
+  }
+
+];
+
+
+/* ==========================================
+   載入產品圖片
+   product0.png 至 product8.png
+========================================== */
+
+const productImages = products.map((p, i) => {
+
+  const img = new Image();
+
+  img.src = `images/product${i}.png`;
+
+  img.onload = () => {
+    console.log(`產品圖片載入成功：product${i}.png`);
+  };
+
+  img.onerror = () => {
+    console.warn(`產品圖片載入失敗：images/product${i}.png`);
+  };
+
+  return img;
+
+});
+
+
+/* ==========================================
+   遊戲變數
+========================================== */
+
+let items = [];
+let score = 0;
+
+let best = Number(
+  localStorage.getItem("tektroBest") || 0
+);
+
+let nextType = 0;
+let pointerX = W / 2;
+
+let canDrop = true;
+let gameEnded = false;
+
+let lastTime = 0;
+let dropCooldown = 0;
+
+let mergeEffects = [];
+let dangerTimer = 0;
+
+document.getElementById("best").textContent = best;
+
+
+/* ==========================================
+   Canvas 尺寸比例
+   保持固定遊戲座標，手機畫面自動縮放
+========================================== */
+
+// 滑鼠及手機觸控位置換算
+function getCanvasX(e) {
+  const rect = canvas.getBoundingClientRect();
+  return (e.clientX - rect.left) / rect.width * W;
+}
+
+// 移動滑鼠或手指
+canvas.addEventListener("pointermove", e => {
+  e.preventDefault();
+  pointerX = getCanvasX(e);
+}, { passive: false });
+
+// 點擊或觸控投放產品
+canvas.addEventListener("pointerdown", e => {
+  e.preventDefault();
+  pointerX = getCanvasX(e);
+  dropItem(pointerX);
+}, { passive: false });
+
+// 防止手機操作時頁面捲動
+canvas.addEventListener("touchmove", e => {
+  e.preventDefault();
+}, { passive: false });
+
+// 鍵盤操作
+window.addEventListener("keydown", e => {
+  if (e.code === "Space") {
+    e.preventDefault();
+    dropItem(pointerX);
+  }
+
+  if (e.key === "ArrowLeft") {
+    pointerX = Math.max(25, pointerX - 18);
+  }
+
+  if (e.key === "ArrowRight") {
+    pointerX = Math.min(W - 25, pointerX + 18);
+  }
+});
+
+// 僅啟動一次
+updateNext();
+requestAnimationFrame(loop);
+
+/* ==========================================
+   隨機下一個產品
+========================================== */
+
+function randomType() {
+  return Math.random() < 0.78 ? 0 : 1;
+}
+
+
+/* ==========================================
+   更新下一個產品預覽
+========================================== */
+
+function updateNext() {
+  nextType = randomType();
+
+  // NEXT PRODUCT 區域若存在才更新
+  const nextName = document.getElementById("nextName");
+  if (nextName) {
+    nextName.textContent = products[nextType].name;
+  }
+
+  const nextImage = document.getElementById("nextImage");
+  if (nextImage) {
+    nextImage.src = `images/product${nextType}.png`;
+  }
+}
+
+
+/* ==========================================
+   新增產品
+========================================== */
+
+function addItem(x, y, type, vx = 0, vy = 0) {
+
+  items.push({
+    x,
+    y,
+    vx,
+    vy,
+    type,
+    r: products[type].r,
+    id: Math.random(),
+    settled: false,
+    age: 0
+  });
+
+}
+
+
+/* ==========================================
+   投放產品
+========================================== */
+
+function dropItem(x) {
+
+  if (!canDrop || gameEnded) return;
+
+  const r = products[nextType].r;
+
+  x = Math.max(
+    r + 5,
+    Math.min(W - r - 5, x)
+  );
+
+  addItem(
+    x,
+    DROP_LINE,
+    nextType,
+    0,
+    0
+  );
+
+  canDrop = false;
+  dropCooldown = 0.48;
+
+  updateNext();
+
+}
+
+
+/* ==========================================
+   重新開始
+========================================== */
+
+function restartGame() {
+
+  items = [];
+  score = 0;
+  gameEnded = false;
+  canDrop = true;
+  dangerTimer = 0;
+  mergeEffects = [];
+
+  document.getElementById("score").textContent = "0";
+
+  document.getElementById("gameOver")
+    .classList.remove("show");
+
+  updateNext();
+
+}
+
+
+/* ==========================================
+   遊戲背景及原本虛線
+========================================== */
+
+function drawBackground() {
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(0, 0, W, H);
+
+  // 淡色背景網格
+  ctx.strokeStyle = "rgba(30,45,60,0.045)";
+  ctx.lineWidth = 1;
+  for (let x = 0; x <= W; x += 35) {
+    ctx.beginPath();
+    ctx.moveTo(x, 0);
+    ctx.lineTo(x, H);
+    ctx.stroke();
+  }
+  for (let y = 0; y <= H; y += 35) {
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    ctx.lineTo(W, y);
+    ctx.stroke();
+  }
+
+  // 產品掉落線：水平灰色虛線
+  ctx.save();
+  ctx.setLineDash([6, 6]);
+  ctx.strokeStyle = "rgba(40,59,78,0.65)";
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(0, DROP_LINE);
+  ctx.lineTo(W, DROP_LINE);
+  ctx.stroke();
+  ctx.restore();
+
+  // DROP ZONE 標示
+  ctx.font = "bold 11px Arial";
+  ctx.fillStyle = "#657587";
+  ctx.textAlign = "left";
+  ctx.fillText("DROP ZONE", 12, 22);
+
+  // 遊戲結束警戒線：水平紅色虛線
+  ctx.save();
+  ctx.setLineDash([5, 5]);
+  ctx.strokeStyle = "rgba(225,79,67,0.8)";
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(0, GAME_OVER_LINE);
+  ctx.lineTo(W, GAME_OVER_LINE);
+  ctx.stroke();
+  ctx.restore();
+
+  // DANGER 標示
+  ctx.font = "bold 11px Arial";
+  ctx.fillStyle = "#bf514b";
+  ctx.textAlign = "right";
+  ctx.fillText("DANGER", W - 10, GAME_OVER_LINE - 8);
+}
+
+/* ==========================================
+   繪製產品
+   無圓圈、無外框、無陰影
+   圖片等比例放大
+========================================== */
+
+function drawProduct(item) {
+  const { x, y, r, type } = item;
+  const img = productImages[type];
+
+  ctx.save();
+  ctx.translate(x, y);
+
+  if (img && img.complete && img.naturalWidth > 0) {
+    // 圖片最大顯示尺寸
+    const maxW = r * 3.5;
+    const maxH = r * 3.5;
+
+    // 寬高共用同一個縮放倍率，確保不變形
+    const scale = Math.min(
+      maxW / img.naturalWidth,
+      maxH / img.naturalHeight
+    );
+
+    const imgW = img.naturalWidth * scale;
+    const imgH = img.naturalHeight * scale;
+
+    // 保留圖片原始比例並置中
+    ctx.drawImage(
+      img,
+      -imgW / 2,
+      -imgH / 2,
+      imgW,
+      imgH
+    );
+  } else {
+    // 圖片尚未載入時顯示代號
+    ctx.fillStyle = "#718294";
+    ctx.font = `bold ${r * 0.48}px Arial`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(products[type].symbol, 0, 0);
+  }
+
+  ctx.restore();
+}
+
+
+/* ==========================================
+   投放預覽
+========================================== */
+
+function drawPreview() {
+  if (!canDrop || gameEnded) return;
+
+  const r = products[nextType].r;
+  const x = Math.max(r + 5, Math.min(W - r - 5, pointerX));
+
+  // 垂直投放輔助虛線
+  ctx.save();
+  ctx.setLineDash([5, 5]);
+  ctx.strokeStyle = "rgba(43,63,82,0.45)";
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(x, DROP_LINE + 8);
+  ctx.lineTo(x, H - 10);
+  ctx.stroke();
+  ctx.restore();
+
+  // 半透明產品預覽
+  ctx.save();
+  ctx.globalAlpha = 0.65;
+  drawProduct({
+    x: x,
+    y: DROP_LINE,
+    type: nextType,
+    r: r
+  });
+  ctx.restore();
+}
+
+
+/* ==========================================
+   合成動畫
+========================================== */
+
+function drawEffects() {
+
+  mergeEffects.forEach(e => {
+
+    ctx.save();
+
+    ctx.globalAlpha = Math.max(
+      0,
+      1 - e.life / 35
+    );
+
+    ctx.strokeStyle = "#d6b300";
+    ctx.lineWidth = 3;
+
+    ctx.beginPath();
+    ctx.arc(
+      e.x,
+      e.y,
+      e.radius + e.life * 1.6,
+      0,
+      Math.PI * 2
+    );
+    ctx.stroke();
+
+    ctx.fillStyle = "#a88900";
+    ctx.font = "bold 16px Arial";
+    ctx.textAlign = "center";
+
+    ctx.fillText(
+      "+" + e.points,
+      e.x,
+      e.y - e.life * 0.8
+    );
+
+    ctx.restore();
+
+  });
+
+}
+
+
+/* ==========================================
+   物理及碰撞
+========================================== */
+
+function physics(dt) {
+
+  const step = Math.min(dt / 16.67, 2);
+
+  /* 重力、移動及邊界 */
+
+  for (const a of items) {
+
+    a.age += dt;
+
+    a.vy += GRAVITY * step;
+    a.vx *= Math.pow(FRICTION, step);
+
+    a.x += a.vx * step;
+    a.y += a.vy * step;
+
+    /* 左側牆壁 */
+
+    if (a.x - a.r < 0) {
+      a.x = a.r;
+      a.vx = Math.abs(a.vx) * BOUNCE;
+    }
+
+    /* 右側牆壁 */
+
+    if (a.x + a.r > W) {
+      a.x = W - a.r;
+      a.vx = -Math.abs(a.vx) * BOUNCE;
+    }
+
+    /* 底部 */
+
+    if (a.y + a.r > H - 10) {
+
+      a.y = H - 10 - a.r;
+      a.vy *= -BOUNCE;
+
+      if (Math.abs(a.vy) < 0.7) {
+        a.vy = 0;
+      }
+
+      a.vx *= 0.96;
+
+    }
+
+  }
+
+
+  /* 產品互相碰撞 */
+
+  const remove = new Set();
+  const additions = [];
+
+  for (let i = 0; i < items.length; i++) {
+
+    const a = items[i];
+
+    if (remove.has(i)) continue;
+
+    for (let j = i + 1; j < items.length; j++) {
+
+      const b = items[j];
+
+      if (remove.has(j)) continue;
+
+      const dx = b.x - a.x;
+      const dy = b.y - a.y;
+
+      const dist = Math.sqrt(dx * dx + dy * dy) || 0.001;
+
+      const minDist = a.r + b.r;
+
+      if (dist < minDist) {
+
+        const nx = dx / dist;
+        const ny = dy / dist;
+        const overlap = minDist - dist;
+
+        /* 相同等級產品合成 */
+
+        if (
+          a.type === b.type &&
+          a.type < products.length - 1
+        ) {
+
+          remove.add(i);
+          remove.add(j);
+
+          const newType = a.type + 1;
+          const p = products[newType];
+
+          const newX = (a.x + b.x) / 2;
+          const newY = (a.y + b.y) / 2;
+
+          additions.push({
+            x: newX,
+            y: newY,
+            vx: (a.vx + b.vx) * 0.35,
+            vy: Math.min(
+              -1.4,
+              (a.vy + b.vy) * 0.2
+            ),
+            type: newType,
+            r: p.r,
+            id: Math.random(),
+            age: 0,
+            settled: false
+          });
+
+          /* 計分 */
+
+          score += p.points;
+
+          document.getElementById("score").textContent = score;
+
+          /* 更新最高分 */
+
+          if (score > best) {
+
+            best = score;
+
+            localStorage.setItem("tektroBest", best);
+
+            document.getElementById("best").textContent = best;
+
+          }
+
+          /* 合成動畫 */
+
+          mergeEffects.push({
+            x: newX,
+            y: newY,
+            life: 0,
+            radius: p.r,
+            points: p.points
+          });
+
+          break;
+
+        } else {
+
+          /* 一般碰撞，產品保持原比例 */
+
+          const relative =
+            (b.vx - a.vx) * nx +
+            (b.vy - a.vy) * ny;
+
+          if (relative < 0) {
+
+            const impulse =
+              -(1 + BOUNCE) * relative * 0.5;
+
+            a.vx -= impulse * nx;
+            a.vy -= impulse * ny;
+
+            b.vx += impulse * nx;
+            b.vy += impulse * ny;
+
+          }
+
+          /* 防止碰撞體互相穿透 */
+
+          const correction = overlap * 0.5;
+
+          a.x -= nx * correction;
+          a.y -= ny * correction;
+
+          b.x += nx * correction;
+          b.y += ny * correction;
+
+        }
+
+      }
+
+    }
+
+  }
+
+  /* 移除已合成產品 */
+
+  items = items.filter((_, i) => !remove.has(i));
+
+  /* 加入合成後的新產品 */
+
+  items.push(...additions);
+
+  /* 更新合成動畫 */
+
+  mergeEffects = mergeEffects.filter(e => {
+    e.life += step;
+    return e.life < 35;
+  });
+
+}
+
+
+/* ==========================================
+   遊戲結束判定
+========================================== */
+
+function checkGameOver(dt) {
+
+  const dangerous = items.some(
+    a =>
+      a.y - a.r < GAME_OVER_LINE &&
+      a.age > 1100
+  );
+
+  if (dangerous) {
+    dangerTimer += dt;
+  } else {
+    dangerTimer = Math.max(
+      0,
+      dangerTimer - dt * 1.5
+    );
+  }
+
+  if (dangerTimer > 1300) {
+
+    gameEnded = true;
+
+    document.getElementById("gameOver")
+      .classList.add("show");
+
+  }
+
+}
+
+
+/* ==========================================
+   畫面更新
+========================================== */
+
+function render() {
+
+  ctx.clearRect(0, 0, W, H);
+
+  drawBackground();
+
+  drawPreview();
+
+  items.forEach(drawProduct);
+
+  drawEffects();
+
+}
+
+
+/* ==========================================
+   遊戲主迴圈
+========================================== */
+
+function loop(timestamp) {
+  const dt = lastTime
+    ? Math.min(timestamp - lastTime, 40)
+    : 16;
+
+  lastTime = timestamp;
+
+  if (!gameEnded) {
+    physics(dt);
+    checkGameOver(dt);
+
+    if (!canDrop) {
+      dropCooldown -= dt / 1000;
+      if (dropCooldown <= 0) {
+        canDrop = true;
+      }
+    }
+  }
+
+  render();
+  requestAnimationFrame(loop);
+}
+
+updateNext();
+requestAnimationFrame(loop);
+
+
+/* ==========================================
+   滑鼠及觸控操作
+========================================== */
+
+canvas.addEventListener("pointermove", e => {
+
+  pointerX = getCanvasX(e);
+
+});
+
+canvas.addEventListener("pointerdown", e => {
+
+  e.preventDefault();
+
+  pointerX = getCanvasX(e);
+
+  dropItem(pointerX);
+
+});
+
+
+/* ==========================================
+   鍵盤操作
+========================================== */
+
+window.addEventListener("keydown", e => {
+
+  if (e.code === "Space") {
+
+    e.preventDefault();
+
+    dropItem(pointerX);
+
+  }
+
+  if (e.key === "ArrowLeft") {
+
+    pointerX = Math.max(
+      25,
+      pointerX - 18
+    );
+
+  }
+
+  if (e.key === "ArrowRight") {
+
+    pointerX = Math.min(
+      W - 25,
+      pointerX + 18
+    );
+
+  }
+
+});
+
+
+/* ==========================================
+   啟動遊戲
+========================================== */
+
+updateNext();
+
+requestAnimationFrame(loop);
+
+</script>
+
+</body>
+</html>
